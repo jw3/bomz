@@ -1,0 +1,5 @@
+package bz
+
+object main {
+
+}
