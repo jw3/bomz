@@ -9,7 +9,6 @@ scalacOptions ++= Seq(
   "-deprecation",
   "-language:postfixOps",
   "-language:implicitConversions",
-  "-Ywarn-unused-import",
   "-Xfatal-warnings",
   "-Xlint:_"
 )
@@ -18,6 +17,9 @@ val zioVersion = "1.0.0-RC18-2"
 val scalatest = "3.1.1"
 libraryDependencies := Seq(
   "dev.zio" %% "zio" % zioVersion,
+  "dev.zio" %% "zio-streams" % zioVersion,
+  "com.iheart" %% "ficus" % "1.4.7",
+  "org.scala-lang.modules" %% "scala-swing" % "2.1.1",
   // ------------- test
   "dev.zio" %% "zio-test" % zioVersion % Test,
   "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
