@@ -121,7 +121,7 @@ object sprites {
         List((186, 254, 202), (204, 255, 204), (64, 105, 149), (32, 96, 0), (32, 64, 0))
           .map(rgb => new Color(rgb._1, rgb._2, rgb._3))
           .map(_.getRGB)
-      
+
       def filterRGB(x: Int, y: Int, rgb: Int): Int =
         if (markerRGB.contains(rgb | 0xFF000000)) 0x00FFFFFF & rgb
         else rgb
