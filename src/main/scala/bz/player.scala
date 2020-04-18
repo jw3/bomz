@@ -2,7 +2,8 @@ package bz
 
 import bz.api.MoveCommand
 import bz.sprites.MultiSpriteStream
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigValueFactory}
+import net.ceedubs.ficus.Ficus._
 import zio.ZIO
 
 import scala.swing.Graphics2D
@@ -33,4 +34,7 @@ object player {
     for {
       ss <- sprites.fromPlayerConfig(cfg)
     } yield new Human(ss)
+
+  def configFor(id: String, config: Config): Config =
+    config.as[Config]("players").withValue("sheet", ConfigValueFactory.fromAnyRef(id))
 }
