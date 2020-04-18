@@ -5,6 +5,7 @@ import java.awt.image.{BufferedImage, FilteredImageSource, RGBImageFilter}
 import java.net.URL
 import java.nio.file.Paths
 
+import bz.sprites.library.SheetBlock
 import com.typesafe.config.Config
 import javax.imageio.ImageIO
 import net.ceedubs.ficus.Ficus._
@@ -19,15 +20,17 @@ object sprites {
     def draw(x: Int, y: Int, g2: Graphics2D): Unit
   }
 
-  def tileFor(image: URL): ZIO[Any, Nothing, Tile] = IO.fromFunction(_ => ImageIO.read(image)).map { im =>
-    new Tile {
-      def w: Int = im.getWidth
-      def h: Int = im.getHeight
-      def draw(x: Int, y: Int, g2: Graphics2D): Unit = g2.drawImage(im, x, y, null)
-    }
+  def tileFrom(image: URL): ZIO[Any, Nothing, Tile] = IO.fromFunction(_ => ImageIO.read(image)).map(tile(_))
+  def tileFor(im: BufferedImage): ZIO[Any, Nothing, Tile] = IO.succeed(im).map(tile(_))
+
+  def tile(im: Image): Tile = new Tile {
+    def w: Int = im.getWidth(null)
+    def h: Int = im.getHeight(null)
+    def draw(x: Int, y: Int, g2: Graphics2D): Unit = g2.drawImage(im, x, y, null)
   }
 
-  def tilesFor(images: Seq[URL]): ZIO[Any, Nothing, List[Tile]] = ZIO.foreach(images)(tileFor)
+  def tilesFor(images: Seq[BufferedImage]): ZIO[Any, Nothing, List[Tile]] = ZIO.foreach(images)(tileFor)
+  def tilesFrom(images: Seq[URL]): ZIO[Any, Nothing, List[Tile]] = ZIO.foreach(images)(tileFrom)
 
   class Player()
 
@@ -45,11 +48,28 @@ object sprites {
 
   def fromPlayerConfig(config: Config): ZIO[Any, Unit, MultiSpriteStream] =
     for {
-      n <- ZIO.fromOption(config.getAs[List[String]]("up")).map(x => x.map(resources.get)).flatMap(tilesFor)
-      s <- ZIO.fromOption(config.getAs[List[String]]("down")).map(x => x.map(resources.get)).flatMap(tilesFor)
-      e <- ZIO.fromOption(config.getAs[List[String]]("left")).map(x => x.map(resources.get)).flatMap(tilesFor)
-      w <- ZIO.fromOption(config.getAs[List[String]]("right")).map(x => x.map(resources.get)).flatMap(tilesFor)
+      n <- ZIO.fromOption(config.getAs[List[String]]("up")).map(x => x.map(resources.get)).flatMap(tilesFrom)
+      s <- ZIO.fromOption(config.getAs[List[String]]("down")).map(x => x.map(resources.get)).flatMap(tilesFrom)
+      e <- ZIO.fromOption(config.getAs[List[String]]("left")).map(x => x.map(resources.get)).flatMap(tilesFrom)
+      w <- ZIO.fromOption(config.getAs[List[String]]("right")).map(x => x.map(resources.get)).flatMap(tilesFrom)
       m = Map("n" -> n, "s" -> s, "e" -> e, "w" -> w)
+    } yield new MultiSpriteStream(m)
+
+  def fromSheetConfig(sheet: SheetBlock, config: Config): ZIO[Any, Unit, MultiSpriteStream] =
+    for {
+      n <- ZIO
+        .fromOption(config.getAs[List[Int]]("up"))
+        .map(x => sheet.tiles.zipWithIndex.filter(t => x.contains(t._2)).map(_._1))
+        .flatMap(tilesFor)
+      s <- ZIO
+        .fromOption(config.getAs[List[Int]]("down"))
+        .map(x => sheet.tiles.zipWithIndex.filter(t => x.contains(t._2)).map(_._1))
+        .flatMap(tilesFor)
+      e <- ZIO
+        .fromOption(config.getAs[List[Int]]("right"))
+        .map(x => sheet.tiles.zipWithIndex.filter(t => x.contains(t._2)).map(_._1))
+        .flatMap(tilesFor)
+      m = Map("n" -> n, "s" -> s, "e" -> e, "w" -> e.reverse)
     } yield new MultiSpriteStream(m)
 
   object library {
