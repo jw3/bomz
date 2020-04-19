@@ -18,16 +18,27 @@ object sprites {
     def w: Int
     def h: Int
     def draw(x: Int, y: Int, g2: Graphics2D): Unit
+    def draw(x: Int, y: Int, w: Int, h: Int, g2: Graphics2D): Unit
+  }
+  object Tile {
+    def apply(im: Image): Tile = new Tile {
+      def w: Int = im.getWidth(null)
+      def h: Int = im.getHeight(null)
+      def draw(x: Int, y: Int, g2: Graphics2D): Unit = g2.drawImage(im, x, y, null)
+      def draw(x: Int, y: Int, w: Int, h: Int, g2: Graphics2D): Unit = g2.drawImage(im, x, y, w, h, null)
+    }
+
+    def hflip(tile: Tile): Tile = {
+      val bi = new BufferedImage(tile.w, tile.h, BufferedImage.TYPE_INT_ARGB)
+      val g2 = bi.getGraphics.asInstanceOf[Graphics2D]
+      tile.draw(tile.w, 0, -tile.w, tile.h, g2)
+      g2.dispose()
+      Tile(bi)
+    }
   }
 
-  def tileFrom(image: URL): ZIO[Any, Nothing, Tile] = IO.fromFunction(_ => ImageIO.read(image)).map(tile(_))
-  def tileFor(im: BufferedImage): ZIO[Any, Nothing, Tile] = IO.succeed(im).map(tile(_))
-
-  def tile(im: Image): Tile = new Tile {
-    def w: Int = im.getWidth(null)
-    def h: Int = im.getHeight(null)
-    def draw(x: Int, y: Int, g2: Graphics2D): Unit = g2.drawImage(im, x, y, null)
-  }
+  def tileFrom(image: URL): ZIO[Any, Nothing, Tile] = IO.fromFunction(_ => ImageIO.read(image)).map(Tile(_))
+  def tileFor(im: BufferedImage): ZIO[Any, Nothing, Tile] = IO.succeed(im).map(Tile(_))
 
   def tilesFor(images: Seq[BufferedImage]): ZIO[Any, Nothing, List[Tile]] = ZIO.foreach(images)(tileFor)
   def tilesFrom(images: Seq[URL]): ZIO[Any, Nothing, List[Tile]] = ZIO.foreach(images)(tileFrom)
@@ -55,22 +66,24 @@ object sprites {
       m = Map("n" -> n, "s" -> s, "e" -> e, "w" -> w)
     } yield new MultiSpriteStream(m)
 
-  def fromSheetConfig(sheet: SheetBlock, config: Config): ZIO[Any, Unit, MultiSpriteStream] =
+  def fromSheetConfig(sheet: SheetBlock, config: Config): ZIO[Any, Unit, MultiSpriteStream] = {
+    val tiles = sheet.tiles.zipWithIndex
     for {
       n <- ZIO
         .fromOption(config.getAs[List[Int]]("up"))
-        .map(x => sheet.tiles.zipWithIndex.filter(t => x.contains(t._2)).map(_._1))
+        .map(x => tiles.filter(t => x.contains(t._2)).map(_._1))
         .flatMap(tilesFor)
       s <- ZIO
         .fromOption(config.getAs[List[Int]]("down"))
-        .map(x => sheet.tiles.zipWithIndex.filter(t => x.contains(t._2)).map(_._1))
+        .map(x => tiles.filter(t => x.contains(t._2)).map(_._1))
         .flatMap(tilesFor)
       e <- ZIO
         .fromOption(config.getAs[List[Int]]("right"))
-        .map(x => sheet.tiles.zipWithIndex.filter(t => x.contains(t._2)).map(_._1))
+        .map(x => tiles.filter(t => x.contains(t._2)).map(_._1))
         .flatMap(tilesFor)
-      m = Map("n" -> n, "s" -> s, "e" -> e, "w" -> e.reverse)
+      m = Map("n" -> n, "s" -> s, "e" -> e, "w" -> e.map(Tile.hflip))
     } yield new MultiSpriteStream(m)
+  }
 
   object library {
     case class SheetBlock(id: String, tiles: Seq[BufferedImage])
