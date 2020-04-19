@@ -6,7 +6,7 @@ import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 import net.ceedubs.ficus.Ficus._
 import zio.ZIO
 
-import scala.swing.Graphics2D
+import scala.swing.{Graphics2D, Point}
 
 object player {
   trait Player
@@ -15,19 +15,37 @@ object player {
 
   class Human(ss: MultiSpriteStream) extends Player with Drawable {
     var d: MoveCommand = api.Down
-    var x = 0
-    var y = 0
+    var xy: Point = new Point(0, 0)
 
     def move(dd: api.MoveCommand) = dd match {
-      case api.Up    => y -= 8
-      case api.Down  => y += 8
-      case api.Right => x += 8
-      case api.Left  => x -= 8
+      case api.Up if d == api.Up => d.move(xy)
+      case api.Up =>
+        d = dd
+        d.move(xy)
+        spr = ss.get("n").iterator
+
+      case api.Down if d == api.Down => d.move(xy)
+      case api.Down =>
+        d = dd
+        d.move(xy)
+        spr = ss.get("s").iterator
+
+      case api.Right if d == api.Right => d.move(xy)
+      case api.Right =>
+        d = dd
+        d.move(xy)
+        spr = ss.get("e").iterator
+
+      case api.Left if d == api.Left => d.move(xy)
+      case api.Left =>
+        d = dd
+        d.move(xy)
+        spr = ss.get("w").iterator
     }
 
     var spr: Iterator[sprites.Tile] = ss.get("s").iterator
     def draw(g2: Graphics2D): Unit =
-      spr.next().draw(x, y, g2)
+      spr.next().draw(xy.x, xy.y, g2)
   }
 
   def humanFromConfig(cfg: Config): ZIO[Any, Unit, Human] =
