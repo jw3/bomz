@@ -49,7 +49,9 @@ object sprites {
   class SpriteMap
 
   // multi frame - bomb pulsing
-  class SpriteStream
+  class SpriteStream(seq: List[Tile]) {
+    def get(): Seq[Tile] = LazyList.continually(seq).flatten
+  }
 
   // multi frame oriented - player walking
   class MultiSpriteStream(map: Map[String, List[Tile]]) {
@@ -65,6 +67,16 @@ object sprites {
       w <- ZIO.fromOption(config.getAs[List[String]]("right")).map(x => x.map(resources.get)).flatMap(tilesFrom)
       m = Map("n" -> n, "s" -> s, "e" -> e, "w" -> w)
     } yield new MultiSpriteStream(m)
+
+  def spriteStream(sheet: SheetBlock, config: Config): ZIO[Any, Unit, SpriteStream] = {
+    val tiles = sheet.tiles.zipWithIndex
+    for {
+      s <- ZIO
+        .fromOption(config.getAs[List[Int]]("tick"))
+        .map(x => tiles.filter(t => x.contains(t._2)).map(_._1))
+        .flatMap(tilesFor)
+    } yield new SpriteStream(s)
+  }
 
   def fromSheetConfig(sheet: SheetBlock, config: Config): ZIO[Any, Unit, MultiSpriteStream] = {
     val tiles = sheet.tiles.zipWithIndex
