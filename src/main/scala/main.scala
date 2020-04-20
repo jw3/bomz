@@ -12,30 +12,33 @@ object main extends scala.App {
     .withFallback(ConfigFactory.load("sheet.conf").getConfig("sheet"))
 
   val app = for {
-    b <- game.board.withBackground(resources.get("/bg.png"))
-    (c, q) <- canvas.withInput(b)
+    gb <- ZIO.succeed(new game.board.Default)
+    canvasInit = for {
+      bg <- canvas.fromBackground(gb, resources.get("/bg.png"))
+      (c, q) <- canvas.withKeyboard(bg)
+    } yield (c, q)
+    (c, q) <- canvasInit
 
     p <- player.humanFromConfig(player.configFor("player1", config))
-    _ = b.add(p)
+    _ = gb.add(p)
 
     _ = bz.gui(c)
 
     lib <- ZIO.fromOption(sprites.library.init(bombCfg).find(_.id == "bomb"))
     ss <- sprites.spriteStream(lib, bombCfg)
-    _ = b.add(items.Bomb(50, 50, ss))
-    _ = b.add(items.Bomb(150, 150, ss))
+    _ = gb.add(items.Bomb(50, 50, ss))
+    _ = gb.add(items.Bomb(150, 150, ss))
 
     update = for {
       i <- q.take
       _ = p.move(i)
-      _ <- ZIO.effect(c.repaint())
     } yield ()
     _ <- update.forever.fork
 
     repaint = for {
-      _ <- ZIO.effect(c.repaint())
+      _ <- ZIO.effect(c.updateAndRepaint())
     } yield ()
-    ff <- repaint.repeat(Schedule.spaced(10.millis)).forever.fork
+    ff <- repaint.repeat(Schedule.spaced(150.millis)).forever.fork
     _ <- ff.join
   } yield ()
 

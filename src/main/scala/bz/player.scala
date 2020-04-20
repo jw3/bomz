@@ -1,6 +1,7 @@
 package bz
 
 import bz.api.MoveCommand
+import bz.game.Entity
 import bz.sprites.MultiSpriteStream
 import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 import net.ceedubs.ficus.Ficus._
@@ -9,7 +10,7 @@ import zio.ZIO
 import scala.swing.{Graphics2D, Point}
 
 object player {
-  trait Player
+  trait Player extends Entity
   class Scripted()
   class Ai()
 
