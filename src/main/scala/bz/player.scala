@@ -16,36 +16,60 @@ object player {
   class Human(ss: MultiSpriteStream) extends Player with Drawable {
     var d: MoveCommand = api.Down
     var xy: Point = new Point(0, 0)
+    var last: Long = 0
 
-    def move(dd: api.MoveCommand) = dd match {
-      case api.Up if d == api.Up => d.move(xy)
-      case api.Up =>
-        d = dd
-        d.move(xy)
-        spr = ss.get("n").iterator
+    def move(dd: api.MoveCommand) = {
+      val now = System.currentTimeMillis()
+      if (now - last > 100) {
+        last = now
+        dd match {
+          case api.Up if d == api.Up =>
+            d.move(xy)
+            cur = spr.nextOption()
 
-      case api.Down if d == api.Down => d.move(xy)
-      case api.Down =>
-        d = dd
-        d.move(xy)
-        spr = ss.get("s").iterator
+          case api.Up =>
+            d = dd
+            d.move(xy)
+            spr = ss.get("n").iterator
+            cur = spr.nextOption()
 
-      case api.Right if d == api.Right => d.move(xy)
-      case api.Right =>
-        d = dd
-        d.move(xy)
-        spr = ss.get("e").iterator
+          case api.Down if d == api.Down =>
+            d.move(xy)
+            cur = spr.nextOption()
 
-      case api.Left if d == api.Left => d.move(xy)
-      case api.Left =>
-        d = dd
-        d.move(xy)
-        spr = ss.get("w").iterator
+          case api.Down =>
+            d = dd
+            d.move(xy)
+            spr = ss.get("s").iterator
+            cur = spr.nextOption()
+
+          case api.Right if d == api.Right =>
+            d.move(xy)
+            cur = spr.nextOption()
+
+          case api.Right =>
+            d = dd
+            d.move(xy)
+            spr = ss.get("e").iterator
+            cur = spr.nextOption()
+
+          case api.Left if d == api.Left =>
+            d.move(xy)
+            cur = spr.nextOption()
+
+          case api.Left =>
+            d = dd
+            d.move(xy)
+            spr = ss.get("w").iterator
+            cur = spr.nextOption()
+        }
+      }
     }
 
     var spr: Iterator[sprites.Tile] = ss.get("s").iterator
+    var cur: Option[sprites.Tile] = spr.nextOption()
     def draw(g2: Graphics2D): Unit =
-      spr.next().draw(xy.x, xy.y, g2)
+      cur.foreach(_.draw(xy.x, xy.y, g2))
   }
 
   def humanFromConfig(cfg: Config): ZIO[Any, Unit, Human] =
