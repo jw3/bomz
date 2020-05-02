@@ -2,7 +2,7 @@ package bz.apps
 
 import java.awt.{Color, Dimension}
 
-import bz.sprites
+import bz.gui.sprites
 import com.typesafe.config.ConfigFactory
 import javax.swing.{BorderFactory, ImageIcon}
 

@@ -1,3 +1,4 @@
+import bz.gui.{canvas, sprites}
 import bz.{items, _}
 import com.typesafe.config.ConfigFactory
 import zio._
@@ -22,7 +23,7 @@ object main extends scala.App {
     p <- player.humanFromConfig(player.configFor("player1", config))
     _ = gb.add(p)
 
-    _ = bz.gui(c)
+    _ = bz.gui.frame(c)
 
     lib <- ZIO.fromOption(sprites.library.init(bombCfg).find(_.id == "bomb"))
     ss <- sprites.spriteStream(lib, bombCfg)

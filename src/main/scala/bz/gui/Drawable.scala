@@ -1,4 +1,4 @@
-package bz
+package bz.gui
 
 import scala.swing.Graphics2D
 

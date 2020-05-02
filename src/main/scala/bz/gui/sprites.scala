@@ -1,11 +1,12 @@
-package bz
+package bz.gui
 
 import java.awt.Toolkit
 import java.awt.image.{BufferedImage, FilteredImageSource, RGBImageFilter}
 import java.net.URL
 import java.nio.file.Paths
 
-import bz.sprites.library.SheetBlock
+import bz.gui.sprites.library.SheetBlock
+import bz.resources
 import com.typesafe.config.Config
 import javax.imageio.ImageIO
 import net.ceedubs.ficus.Ficus._

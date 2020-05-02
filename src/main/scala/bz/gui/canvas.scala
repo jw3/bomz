@@ -1,4 +1,4 @@
-package bz
+package bz.gui
 
 import java.awt.image.BufferedImage
 import java.awt.{Color, Image}
@@ -6,11 +6,12 @@ import java.io.IOException
 import java.net.URL
 
 import bz.api.MoveCommand
+import bz.{api, game}
 import javax.imageio.ImageIO
 import zio.{IO, Queue, ZIO}
 
 import scala.swing.event.Key
-import scala.swing.{event, Component}
+import scala.swing.{Component, event}
 
 object canvas {
   def fromBackground(gb: game.Board, image: URL): IO[IOException, Canvas] =

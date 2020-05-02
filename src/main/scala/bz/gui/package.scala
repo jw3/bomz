@@ -1,14 +1,12 @@
 package bz
 
-import java.awt.Dimension
-
-import bz.canvas.Canvas
+import bz.gui.canvas.Canvas
 
 import scala.swing.BorderPanel.Position
-import scala.swing._
+import scala.swing.{BorderPanel, Dimension, MainFrame}
 
-object gui {
-  def apply(canvas: Canvas): MainFrame =
+package object gui {
+  def frame(canvas: Canvas): MainFrame =
     new MainFrame {
       title = "bomz"
 

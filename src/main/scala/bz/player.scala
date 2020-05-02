@@ -2,7 +2,8 @@ package bz
 
 import bz.api.MoveCommand
 import bz.game.Entity
-import bz.sprites.MultiSpriteStream
+import bz.gui.{Drawable, sprites}
+import bz.gui.sprites.MultiSpriteStream
 import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 import net.ceedubs.ficus.Ficus._
 import zio.ZIO

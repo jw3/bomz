@@ -1,6 +1,7 @@
 package bz
 import bz.game.Entity
-import bz.sprites.SpriteStream
+import bz.gui.{Drawable, sprites}
+import bz.gui.sprites.SpriteStream
 
 import scala.swing.Graphics2D
 
