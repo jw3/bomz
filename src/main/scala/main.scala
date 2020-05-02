@@ -22,23 +22,22 @@ object main extends scala.App {
     } yield (c, q)
     (c, q) <- canvasInit
 
-    p <- player.humanFromConfig(new Point(0, 0), "player1", player.configFor("player1", config))
+    p <- player.humanFromConfig("p1", "player1", new Point(0, 0), player.configFor("player1", config))
     _ = gb.add(p)
 
-    p2 <- player.humanFromConfig(new Point(200, 200), "player7", player.configFor("player7", config))
+    p2 <- player.humanFromConfig("p2", "player7", new Point(200, 200), player.configFor("player7", config))
     _ = gb.add(p2)
 
     _ = bz.gui.frame(c)
 
     lib <- ZIO.fromOption(sprites.library.init(bombCfg).find(_.id == "bomb"))
     ss <- sprites.spriteStream(lib, bombCfg)
-    _ = gb.add(items.Bomb(50, 50, ss))
-    _ = gb.add(items.Bomb(150, 150, ss))
+    _ = gb.add(items.Bomb("b1", new Point(50, 50), ss))
+    _ = gb.add(items.Bomb("b2", new Point(150, 150), ss))
 
     update = for {
       i <- q.take
-      _ = p.move(i)
-      _ = p2.move(i)
+      _ = gb.exec(i)
     } yield ()
     _ <- update.forever.fork
 

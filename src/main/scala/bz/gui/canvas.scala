@@ -5,13 +5,13 @@ import java.awt.{Color, Image}
 import java.io.IOException
 import java.net.URL
 
-import bz.api.MoveCommand
+import bz.api.Move
 import bz.{api, game}
 import javax.imageio.ImageIO
 import zio.{IO, Queue, ZIO}
 
 import scala.swing.event.Key
-import scala.swing.{Component, event}
+import scala.swing.{event, Component}
 
 object canvas {
   def fromBackground(gb: game.Board, image: URL): IO[IOException, Canvas] =
@@ -20,9 +20,9 @@ object canvas {
       new DefaultCanvas(gb, bg.getWidth, bg.getHeight, Some(bg))
     }
 
-  def withKeyboard(c: Canvas): ZIO[Any, Nothing, (Canvas, Queue[MoveCommand])] =
+  def withKeyboard(c: Canvas): ZIO[Any, Nothing, (Canvas, Queue[Move])] =
     for {
-      q <- Queue.bounded[MoveCommand](10)
+      q <- Queue.bounded[Move](10)
       _ = keyboardToQueue(c, q)
     } yield (c, q)
 
@@ -36,9 +36,11 @@ object canvas {
 
     background = Color.RED
 
-    def drawables: Seq[Drawable] = gb.entities.map {
-      case e: Drawable => e
-    }
+    def drawables: Seq[Drawable] =
+      gb.entities.flatMap {
+        case (_, e: Drawable) => Some(e)
+        case _                => None
+      }.toSeq
 
     def updateAndRepaint(): Unit = {
       bg.foreach(g2.drawImage(_, 0, 0, null))
@@ -50,15 +52,21 @@ object canvas {
     }
   }
 
-  def keyboardToQueue(c: Canvas, q: Queue[MoveCommand]): Unit = {
+  def keyboardToQueue(c: Canvas, q: Queue[Move]): Unit = {
     c.listenTo(c.keys)
     c.focusable = true
 
     c.reactions += {
-      case event.KeyPressed(_, Key.W | Key.Up, _, _)    => zio.Runtime.default.unsafeRun(q.offer(api.Up))
-      case event.KeyPressed(_, Key.S | Key.Down, _, _)  => zio.Runtime.default.unsafeRun(q.offer(api.Down))
-      case event.KeyPressed(_, Key.A | Key.Left, _, _)  => zio.Runtime.default.unsafeRun(q.offer(api.Left))
-      case event.KeyPressed(_, Key.D | Key.Right, _, _) => zio.Runtime.default.unsafeRun(q.offer(api.Right))
+      // todo;; hack p1
+      case event.KeyPressed(_, Key.W, _, _) => zio.Runtime.default.unsafeRun(q.offer(api.Move.Up("p1")))
+      case event.KeyPressed(_, Key.S, _, _) => zio.Runtime.default.unsafeRun(q.offer(api.Move.Down("p1")))
+      case event.KeyPressed(_, Key.A, _, _) => zio.Runtime.default.unsafeRun(q.offer(api.Move.Left("p1")))
+      case event.KeyPressed(_, Key.D, _, _) => zio.Runtime.default.unsafeRun(q.offer(api.Move.Right("p1")))
+      // todo;; hack p2
+      case event.KeyPressed(_, Key.Up, _, _)    => zio.Runtime.default.unsafeRun(q.offer(api.Move.Up("p2")))
+      case event.KeyPressed(_, Key.Down, _, _)  => zio.Runtime.default.unsafeRun(q.offer(api.Move.Down("p2")))
+      case event.KeyPressed(_, Key.Left, _, _)  => zio.Runtime.default.unsafeRun(q.offer(api.Move.Left("p2")))
+      case event.KeyPressed(_, Key.Right, _, _) => zio.Runtime.default.unsafeRun(q.offer(api.Move.Right("p2")))
     }
   }
 }
