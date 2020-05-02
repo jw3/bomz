@@ -4,6 +4,8 @@ import com.typesafe.config.ConfigFactory
 import zio._
 import zio.duration._
 
+import scala.swing.Point
+
 object main extends scala.App {
   val config = ConfigFactory.load()
   val playerCfg = config.getConfig("players")
@@ -20,8 +22,11 @@ object main extends scala.App {
     } yield (c, q)
     (c, q) <- canvasInit
 
-    p <- player.humanFromConfig(player.configFor("player1", config))
+    p <- player.humanFromConfig(new Point(0, 0), "player1", player.configFor("player1", config))
     _ = gb.add(p)
+
+    p2 <- player.humanFromConfig(new Point(200, 200), "player7", player.configFor("player7", config))
+    _ = gb.add(p2)
 
     _ = bz.gui.frame(c)
 
@@ -33,6 +38,7 @@ object main extends scala.App {
     update = for {
       i <- q.take
       _ = p.move(i)
+      _ = p2.move(i)
     } yield ()
     _ <- update.forever.fork
 

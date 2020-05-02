@@ -15,9 +15,9 @@ object player {
   class Scripted()
   class Ai()
 
-  class Human(ss: MultiSpriteStream) extends Player with Drawable {
+  class Human(pos: Point, ss: MultiSpriteStream) extends Player with Drawable {
     var d: MoveCommand = api.Down
-    var xy: Point = new Point(0, 0)
+    var xy: Point = pos
     var last: Long = 0
 
     def move(dd: api.MoveCommand) = {
@@ -74,12 +74,12 @@ object player {
       cur.foreach(_.draw(xy.x, xy.y, g2))
   }
 
-  def humanFromConfig(cfg: Config): ZIO[Any, Unit, Human] =
+  def humanFromConfig(pt: Point, name: String, cfg: Config): ZIO[Any, Unit, Human] =
     for {
       // todo;; the init call here is hack
-      lib <- ZIO.fromOption(sprites.library.init(cfg).find(_.id == "player1"))
+      lib <- ZIO.fromOption(sprites.library.init(cfg).find(_.id == name))
       ss <- sprites.fromSheetConfig(lib, cfg)
-    } yield new Human(ss)
+    } yield new Human(pt, ss)
 
   def configFor(id: String, config: Config): Config =
     config
