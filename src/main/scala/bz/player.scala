@@ -68,54 +68,6 @@ object player {
       case _ => become(c)
     }
 
-//    def move(dd: api.Move) = {
-//      val now = System.currentTimeMillis()
-//      if (now - last > 100) {
-//        last = now
-//        dd match {
-//          case api.Up if d == api.Up =>
-//            d.move(xy)
-//            cur = spr.nextOption()
-//
-//          case api.Up =>
-//            d = dd
-//            d.move(xy)
-//            spr = ss.get("n").iterator
-//            cur = spr.nextOption()
-//
-//          case api.Down if d == api.Down =>
-//            d.move(xy)
-//            cur = spr.nextOption()
-//
-//          case api.Down =>
-//            d = dd
-//            d.move(xy)
-//            spr = ss.get("s").iterator
-//            cur = spr.nextOption()
-//
-//          case api.Right if d == api.Right =>
-//            d.move(xy)
-//            cur = spr.nextOption()
-//
-//          case api.Right =>
-//            d = dd
-//            d.move(xy)
-//            spr = ss.get("e").iterator
-//            cur = spr.nextOption()
-//
-//          case api.Left if d == api.Left =>
-//            d.move(xy)
-//            cur = spr.nextOption()
-//
-//          case api.Left =>
-//            d = dd
-//            d.move(xy)
-//            spr = ss.get("w").iterator
-//            cur = spr.nextOption()
-//        }
-//      }
-//    }
-
     var spr: Iterator[sprites.Tile] = ss.get("s").iterator
     var cur: Option[sprites.Tile] = spr.nextOption()
     def draw(g2: Graphics2D): Unit =
