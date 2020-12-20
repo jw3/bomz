@@ -15,12 +15,14 @@ object main extends scala.App {
     .withFallback(ConfigFactory.load("sheet.conf").getConfig("sheet"))
 
   val app = for {
-    gb <- ZIO.succeed(new game.board.Default)
+    eventQueue <- Queue.bounded[api.Event](10)
+
+    gb <- ZIO.succeed(new game.board.Default(eventQueue))
     canvasInit = for {
       bg <- canvas.fromBackground(gb, resources.get("/bg.png"))
       (c, q) <- canvas.withKeyboard(bg)
     } yield (c, q)
-    (c, q) <- canvasInit
+    (c, commandQueue) <- canvasInit
 
     p <- player.humanFromConfig("p1", "player1", new Point(0, 0), player.configFor("player1", config))
     _ = gb.add(p)
@@ -36,14 +38,15 @@ object main extends scala.App {
     _ = gb.add(items.Bomb("b2", new Point(150, 150), ss))
 
     update = for {
-      i <- q.take
-      _ = gb.exec(i)
+      i <- commandQueue.take
+      _ <- gb.exec(i)
     } yield ()
     _ <- update.forever.fork
 
     repaint = for {
       _ <- ZIO.effect(c.updateAndRepaint())
     } yield ()
+
     ff <- repaint.repeat(Schedule.spaced(150.millis)).forever.fork
     _ <- ff.join
   } yield ()

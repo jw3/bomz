@@ -5,7 +5,6 @@ import java.awt.{Color, Image}
 import java.io.IOException
 import java.net.URL
 
-import bz.api.Move
 import bz.{api, game}
 import javax.imageio.ImageIO
 import zio.{IO, Queue, ZIO}
@@ -20,9 +19,9 @@ object canvas {
       new DefaultCanvas(gb, bg.getWidth, bg.getHeight, Some(bg))
     }
 
-  def withKeyboard(c: Canvas): ZIO[Any, Nothing, (Canvas, Queue[Move])] =
+  def withKeyboard(c: Canvas): ZIO[Any, Nothing, (Canvas, Queue[api.Command])] =
     for {
-      q <- Queue.bounded[Move](10)
+      q <- Queue.bounded[api.Command](10)
       _ = keyboardToQueue(c, q)
     } yield (c, q)
 
@@ -52,7 +51,7 @@ object canvas {
     }
   }
 
-  def keyboardToQueue(c: Canvas, q: Queue[Move]): Unit = {
+  def keyboardToQueue(c: Canvas, q: Queue[api.Command]): Unit = {
     c.listenTo(c.keys)
     c.focusable = true
 
@@ -62,6 +61,9 @@ object canvas {
       case event.KeyPressed(_, Key.S, _, _) => zio.Runtime.default.unsafeRun(q.offer(api.Move.Down("p1")))
       case event.KeyPressed(_, Key.A, _, _) => zio.Runtime.default.unsafeRun(q.offer(api.Move.Left("p1")))
       case event.KeyPressed(_, Key.D, _, _) => zio.Runtime.default.unsafeRun(q.offer(api.Move.Right("p1")))
+
+      case event.KeyPressed(_, Key.Alt, _, _) => zio.Runtime.default.unsafeRun(q.offer(api.Bomb.Drop("p1")))
+
       // todo;; hack p2
       case event.KeyPressed(_, Key.Up, _, _)    => zio.Runtime.default.unsafeRun(q.offer(api.Move.Up("p2")))
       case event.KeyPressed(_, Key.Down, _, _)  => zio.Runtime.default.unsafeRun(q.offer(api.Move.Down("p2")))

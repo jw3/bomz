@@ -13,6 +13,13 @@ object api {
     def eid: String
   }
 
+  object Bomb {
+    case class Drop(eid: String) extends Command {
+      def exec(e: Entity): Event = Dropped(eid, e.pt)
+    }
+    case class Dropped(eid: String, pt: Point) extends Event
+  }
+
   sealed trait Move extends Command
   object Move {
     case class Up(eid: String) extends Move {

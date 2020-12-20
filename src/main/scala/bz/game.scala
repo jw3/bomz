@@ -1,7 +1,8 @@
 package bz
 
-import bz.api.{Command, Event, Move}
+import bz.api.{Bomb, Command, Event, Move}
 import bz.items.Item
+import zio.{IO, Queue, ZIO}
 
 import scala.collection.mutable
 import scala.swing.Point
@@ -33,7 +34,7 @@ object game {
     def add(p: Entity): Unit
   }
   object board {
-    class Default() extends Board {
+    class Default(eventQueue: Queue[Event]) extends Board {
       var e = Map.empty[String, Entity]
 
       def entities: Map[String, Entity] = e
@@ -41,10 +42,12 @@ object game {
       def add(p: Entity): Unit =
         e += p.id -> p
 
-      def exec(c: Command): Unit = c match {
+      def exec(c: Command): IO[Unit, ZIO[Any, Nothing, Boolean]] = ZIO.fromOption(c match {
         case m: Move =>
-          e.get(m.eid).map(m.exec).foreach(println)
-      }
+          e.get(m.eid).map(m.exec).map(eventQueue.offer)
+        case b: Bomb.Drop =>
+          e.get(b.eid).map(b.exec).map(eventQueue.offer)
+      })
     }
   }
 }
