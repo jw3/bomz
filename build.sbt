@@ -13,7 +13,7 @@ scalacOptions ++= Seq(
   "-Xlint:_"
 )
 
-val zioVersion = "1.0.0-RC18-2"
+val zioVersion = "1.0.3"
 val scalatest = "3.1.1"
 libraryDependencies := Seq(
   "dev.zio" %% "zio" % zioVersion,

@@ -1,6 +1,6 @@
 package bz
 
-import bz.api.{Bomb, Command, Event, Move}
+import bz.api.{Command, Event}
 import bz.items.Item
 import zio.{IO, Queue, ZIO}
 
@@ -42,12 +42,12 @@ object game {
       def add(p: Entity): Unit =
         e += p.id -> p
 
-      def exec(c: Command): IO[Unit, ZIO[Any, Nothing, Boolean]] = ZIO.fromOption(c match {
-        case m: Move =>
-          e.get(m.eid).map(m.exec).map(eventQueue.offer)
-        case b: Bomb.Drop =>
-          e.get(b.eid).map(b.exec).map(eventQueue.offer)
-      })
+      def exec(c: Command): IO[EntityNotFound, Event] = for {
+        en <- ZIO.fromOption(e.get(c.eid)).mapError(_ => EntityNotFound(c.eid))
+        ev = c.exec(en)
+      } yield ev
     }
   }
 }
+
+case class EntityNotFound(id: String)

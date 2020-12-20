@@ -1,17 +1,16 @@
 package bz.gui
 
+import bz.gui.sprites.library.SheetBlock
+import bz.resources
+import com.typesafe.config.Config
+import net.ceedubs.ficus.Ficus._
+import zio.IO
+
 import java.awt.Toolkit
 import java.awt.image.{BufferedImage, FilteredImageSource, RGBImageFilter}
 import java.net.URL
 import java.nio.file.Paths
-
-import bz.gui.sprites.library.SheetBlock
-import bz.resources
-import com.typesafe.config.Config
 import javax.imageio.ImageIO
-import net.ceedubs.ficus.Ficus._
-import zio.{IO, ZIO}
-
 import scala.swing.{Color, Graphics2D, Image}
 
 object sprites {
@@ -38,11 +37,7 @@ object sprites {
     }
   }
 
-  def tileFrom(image: URL): ZIO[Any, Nothing, Tile] = IO.fromFunction(_ => ImageIO.read(image)).map(Tile(_))
-  def tileFor(im: BufferedImage): ZIO[Any, Nothing, Tile] = IO.succeed(im).map(Tile(_))
-
-  def tilesFor(images: Seq[BufferedImage]): ZIO[Any, Nothing, List[Tile]] = ZIO.foreach(images)(tileFor)
-  def tilesFrom(images: Seq[URL]): ZIO[Any, Nothing, List[Tile]] = ZIO.foreach(images)(tileFrom)
+  def tilesFrom(images: Seq[URL]) = IO.foreach(images)(i => IO(ImageIO.read(i)).map(Tile.apply))
 
   class Player()
 
@@ -50,53 +45,42 @@ object sprites {
   class SpriteMap
 
   // multi frame - bomb pulsing
-  class SpriteStream(seq: List[Tile]) {
+  class SpriteStream(seq: Seq[Tile]) {
     def get(): Seq[Tile] = LazyList.continually(seq).flatten
   }
 
   // multi frame oriented - player walking
-  class MultiSpriteStream(map: Map[String, List[Tile]]) {
-    def get(k: String): Seq[Tile] =
-      LazyList.continually(map(k)).flatten
+  class MultiSpriteStream(map: Map[String, SpriteStream]) {
+    def get(k: String): Seq[Tile] = map(k).get()
   }
 
-  def fromPlayerConfig(config: Config): ZIO[Any, Unit, MultiSpriteStream] =
+  def fromPlayerConfig(config: Config) =
     for {
-      n <- ZIO.fromOption(config.getAs[List[String]]("up")).map(x => x.map(resources.get)).flatMap(tilesFrom)
-      s <- ZIO.fromOption(config.getAs[List[String]]("down")).map(x => x.map(resources.get)).flatMap(tilesFrom)
-      e <- ZIO.fromOption(config.getAs[List[String]]("left")).map(x => x.map(resources.get)).flatMap(tilesFrom)
-      w <- ZIO.fromOption(config.getAs[List[String]]("right")).map(x => x.map(resources.get)).flatMap(tilesFrom)
-      m = Map("n" -> n, "s" -> s, "e" -> e, "w" -> w)
-    } yield new MultiSpriteStream(m)
+      n <- tilesFrom(config.as[List[String]]("up").map(resources.get))
+      s <- tilesFrom(config.as[List[String]]("down").map(resources.get))
+      e <- tilesFrom(config.as[List[String]]("left").map(resources.get))
+      w <- tilesFrom(config.as[List[String]]("right").map(resources.get))
+    } yield new MultiSpriteStream(Map(
+      "n" -> new SpriteStream(n),
+      "s" -> new SpriteStream(s),
+      "e" -> new SpriteStream(e),
+      "w" -> new SpriteStream(w)))
 
-  def spriteStream(sheet: SheetBlock, config: Config): ZIO[Any, Unit, SpriteStream] = {
-    val tiles = sheet.tiles.zipWithIndex
+  type TileF = Tile => Tile
+  def spriteStream(path: String, sheet: SheetBlock, config: Config, tx: TileF = identity) =
     for {
-      s <- ZIO
-        .fromOption(config.getAs[List[Int]]("tick"))
-        .map(x => tiles.filter(t => x.contains(t._2)).map(_._1))
-        .flatMap(tilesFor)
-    } yield new SpriteStream(s)
-  }
+      s <- IO(config.as[List[Int]](path))
+      z = sheet.tiles.zipWithIndex
+      r = z.filter(k => s.contains(k._2)).map(_._1).map(Tile.apply)
+    } yield new SpriteStream(r.map(tx))
 
-  def fromSheetConfig(sheet: SheetBlock, config: Config): ZIO[Any, Unit, MultiSpriteStream] = {
-    val tiles = sheet.tiles.zipWithIndex
+  def fromSheetConfig(path: String, sheet: SheetBlock, config: Config) =
     for {
-      n <- ZIO
-        .fromOption(config.getAs[List[Int]]("up"))
-        .map(x => tiles.filter(t => x.contains(t._2)).map(_._1))
-        .flatMap(tilesFor)
-      s <- ZIO
-        .fromOption(config.getAs[List[Int]]("down"))
-        .map(x => tiles.filter(t => x.contains(t._2)).map(_._1))
-        .flatMap(tilesFor)
-      e <- ZIO
-        .fromOption(config.getAs[List[Int]]("right"))
-        .map(x => tiles.filter(t => x.contains(t._2)).map(_._1))
-        .flatMap(tilesFor)
-      m = Map("n" -> n, "s" -> s, "e" -> e, "w" -> e.map(Tile.hflip))
-    } yield new MultiSpriteStream(m)
-  }
+      n <- spriteStream("up", sheet, config)
+      s <- spriteStream("down", sheet, config)
+      e <- spriteStream("right", sheet, config)
+      w <- spriteStream("right", sheet, config, Tile.hflip)
+    } yield new MultiSpriteStream(Map("n" -> n, "s" -> s, "e" -> e, "w" -> w))
 
   object library {
     case class SheetBlock(id: String, tiles: Seq[BufferedImage])

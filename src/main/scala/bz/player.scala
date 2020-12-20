@@ -5,7 +5,7 @@ import bz.gui.sprites.MultiSpriteStream
 import bz.gui.{sprites, Drawable}
 import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 import net.ceedubs.ficus.Ficus._
-import zio.ZIO
+import zio.IO
 
 import scala.swing.{Graphics2D, Point}
 
@@ -27,13 +27,13 @@ object player {
 
     def become(c: api.Moved): Unit = {
       c match {
-        case api.Moved.Up(_, _)    =>
+        case api.Moved.Up(_, _) =>
           spr = ss.get("n").iterator
           mover = up
-        case api.Moved.Down(_, _)  =>
+        case api.Moved.Down(_, _) =>
           spr = ss.get("s").iterator
           mover = down
-        case api.Moved.Left(_, _)  =>
+        case api.Moved.Left(_, _) =>
           spr = ss.get("w").iterator
           mover = left
         case api.Moved.Right(_, _) =>
@@ -74,11 +74,11 @@ object player {
       cur.foreach(_.draw(pt.x, pt.y, g2))
   }
 
-  def humanFromConfig(id: String, sheet: String, pt: Point, cfg: Config): ZIO[Any, Unit, Human] =
+  case class HumanConfigNotFound()
+  def humanFromConfig(id: String, sheet: String, pt: Point, cfg: Config) =
     for {
-      // todo;; the init call here is hack
-      lib <- ZIO.fromOption(sprites.library.init(cfg).find(_.id == sheet))
-      ss <- sprites.fromSheetConfig(lib, cfg)
+      sheet <- IO(sprites.library.init(cfg)).map(_.find(_.id == sheet)).someOrFail(HumanConfigNotFound())
+      ss <- sprites.fromSheetConfig(id, sheet, cfg)
     } yield new Human(id, pt, ss)
 
   def configFor(id: String, config: Config): Config =

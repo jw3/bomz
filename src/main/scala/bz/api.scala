@@ -9,13 +9,15 @@ object api {
     def eid: String
     def exec(e: Entity): Event
   }
+
+  // execution of a command generates an
   sealed trait Event {
     def eid: String
   }
 
   object Bomb {
     case class Drop(eid: String) extends Command {
-      def exec(e: Entity): Event = Dropped(eid, e.pt)
+      def exec(e: Entity): Dropped = Dropped(eid, e.pt)
     }
     case class Dropped(eid: String, pt: Point) extends Event
   }

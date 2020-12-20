@@ -2,6 +2,7 @@ import bz.gui.{canvas, sprites}
 import bz.{items, _}
 import com.typesafe.config.ConfigFactory
 import zio._
+import zio.clock.Clock
 import zio.duration._
 
 import scala.swing.Point
@@ -15,9 +16,9 @@ object main extends scala.App {
     .withFallback(ConfigFactory.load("sheet.conf").getConfig("sheet"))
 
   val app = for {
-    eventQueue <- Queue.bounded[api.Event](10)
+    inputbus <- Queue.bounded[api.Event](10)
 
-    gb <- ZIO.succeed(new game.board.Default(eventQueue))
+    gb <- ZIO.succeed(new game.board.Default(inputbus))
     canvasInit = for {
       bg <- canvas.fromBackground(gb, resources.get("/bg.png"))
       (c, q) <- canvas.withKeyboard(bg)
@@ -33,23 +34,24 @@ object main extends scala.App {
     _ = bz.gui.frame(c)
 
     lib <- ZIO.fromOption(sprites.library.init(bombCfg).find(_.id == "bomb"))
-    ss <- sprites.spriteStream(lib, bombCfg)
+    ss <- sprites.spriteStream("tick", lib, bombCfg)
     _ = gb.add(items.Bomb("b1", new Point(50, 50), ss))
     _ = gb.add(items.Bomb("b2", new Point(150, 150), ss))
 
     update = for {
-      i <- commandQueue.take
-      _ <- gb.exec(i)
-    } yield ()
-    _ <- update.forever.fork
+      Some(i) <- commandQueue.take.timeoutTo(None)(Some(_))(100.milli)
+      e <- gb.exec(i)
+    } yield (println(e))
 
-    repaint = for {
-      _ <- ZIO.effect(c.updateAndRepaint())
+    loop = for {
+      _ <- IO.effect(c.updateAndRepaint()).absorb
+      _ <- update.repeat(Schedule.duration(1.millis)).ignore
     } yield ()
 
-    ff <- repaint.repeat(Schedule.spaced(150.millis)).forever.fork
+    ff <- loop.forever.fork
     _ <- ff.join
   } yield ()
 
-  Runtime.default.unsafeRun(app)
+  val deps = zio.system.System.live >+> Clock.live >+> zio.console.Console.live
+  Runtime.unsafeFromLayer(deps).unsafeRun(app)
 }
